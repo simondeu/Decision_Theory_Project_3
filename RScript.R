@@ -88,9 +88,26 @@ InformationScore = function(j){
     
     }  
   }
-  return(Information/5)
+  x=c()
+  x=Information/5
+  y=r
+  return(c(x,y))
 }
 InformationScores = c()
 for (i in seq(1,5)){
-  InformationScores=append(InformationScores,InformationScore(i))
+  InformationScores=append(InformationScores,InformationScore(i)[1])
 }
+
+
+#Need to make the cdf's of 5 experts for 5 questions
+CustomCDF = function(Expert,Question){
+#Heb half uur geprobeerd maar niks werkte :(
+#We moeten voor elke expert een soort eigen cdf maken op basis van hun quantiles, hebben we nodig voor de decision maker
+}
+
+
+
+DecisionMaker = function(alpha){
+  
+}
+
