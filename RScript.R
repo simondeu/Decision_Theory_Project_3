@@ -69,22 +69,28 @@ for (i in seq(1,5)){
   CalibrationScores[i]=Cal(I(i,p))
 }
 
-U=c(1-0.1*199,0.00044-0.1*(100-0.00044),300000-0.1*(60000000-300000),10-0.1*(1000-10),0.1-0.1*(1000-0.1))
-L=c(200+0.1*199,100+0.1*(100-0.00044),60000000+0.1*(60000000-300000),1000+0.1*(1000-10),1000+0.1*(1000-0.1))
+L=c(1-0.1*199,0.00044-0.1*(100-0.00044),300000-0.1*(60000000-300000),10-0.1*(1000-10),0.1-0.1*(1000-0.1))
+U=c(200+0.1*199,100+0.1*(100-0.00044),60000000+0.1*(60000000-300000),1000+0.1*(1000-10),1000+0.1*(1000-0.1))
 
 
 InformationScore = function(j){
+  r = c()
   Information=0
-  r1=c((Data1[[j+1]][1]-L[1])/(U[1]-L[1]),(Data1[[j+1]][2]-Data1[[j+1]][1])/(U[1]-L[1]),(Data1[[j+1]][3]-Data1[[j+1]][2])/(U[1]-L[1])
-  r2=
-  r3=
-  r4=
-  r5=
-  for (i in seq(1,4)){
-    Information = Information + p[i]*log(p[i]/)
-    
-    
+  for(i in seq(1,5)){
+    k=paste("Data",as.character(i),sep='')
+    Data=get(k)
+    r[[i]]=c((Data[[j+1]][1]-L[i])/(U[i]-L[i]),(Data[[j+1]][2]-Data[[j+1]][1])/(U[i]-L[i]),(Data[[j+1]][3]-Data[[j+1]][2])/(U[i]-L[i]),(U[i]-Data[[j+1]][3])/(U[i]-L[i]))
   }
-  
+  for (l in seq(1,5)){
+    for (i in seq(1,4)){
+      Information = Information + p[i]*log(p[i]/r[[l]][i])
+    
+    
+    }  
+  }
+  return(Information/5)
 }
-
+InformationScores = c()
+for (i in seq(1,5)){
+  InformationScores=append(InformationScores,InformationScore(i))
+}
