@@ -79,12 +79,12 @@ U=c(200+0.1*199,100+0.1*(100-0.00044),60000000+0.1*(60000000-300000),1000+0.1*(1
 InformationScore = function(j){
   r = c()
   Information=0
-  for(i in seq(1,5)){
+  for(i in seq(1,6)){
     k=paste("Data",as.character(i),sep='')
     Data=get(k)
     r[[i]]=c((Data[[j+1]][1]-L[i])/(U[i]-L[i]),(Data[[j+1]][2]-Data[[j+1]][1])/(U[i]-L[i]),(Data[[j+1]][3]-Data[[j+1]][2])/(U[i]-L[i]),(U[i]-Data[[j+1]][3])/(U[i]-L[i]))
   }
-  for (l in seq(1,5)){
+  for (l in seq(1,6)){
     for (i in seq(1,4)){
       Information = Information + p[i]*log(p[i]/r[[l]][i])
     
@@ -92,7 +92,7 @@ InformationScore = function(j){
     }  
   }
   x=c()
-  x=Information/5
+  x=Information/6
   y=r
   return(c(x,y))
 }
@@ -147,7 +147,7 @@ CustomCDF = function(Expert,x,question){
 
 
 PlotExpert = function(e,color,question,reset=FALSE){
-x=seq(L[question],U[question],1)
+  x=seq(L[question],U[question],(U[question]-L[question])/10000)
 y=c()
 for(i in seq(length(x))){
   y[i] = CustomCDF(e,x[i],question)
@@ -159,7 +159,7 @@ else{
   lines(x,y,type='l', col=color)
 }
 }
-que = 6
+que = 1
 PlotExpert(1,'black',que,TRUE)
 PlotExpert(2,'orange',que)
 PlotExpert(3,'red',que)
@@ -195,7 +195,7 @@ PlotDM = function(x,y){
 }
 ListDecisionMaker = function(alpha,question,plot=FALSE){
   y = c()
-  x=seq(L[question],U[question],1)
+  x=seq(L[question],U[question],(U[question]-L[question])/10000)
   for(i in seq(length(x))){
     y[i] = DecisionMaker(alpha,x[i],question)
   }
@@ -214,48 +214,55 @@ legend(x="bottomright",
 )
 
 
-QuantileCalculator = function(q,y){
+QuantileCalculator = function(q,y,question){
+  x=seq(L[question],U[question],(U[question]-L[question])/10000)
   i = 1
   while(y[i]<q & i < length(y)){
     i = i + 1
   }
   return(x[i])
 }
-Quantiles=function(y){
+Quantiles=function(y,question){
   q = c()
-  q[1] = QuantileCalculator(0.05,y)
-  q[2] = QuantileCalculator(0.5,y)
-  q[3] = QuantileCalculator(0.95,y)
+  q[1] = QuantileCalculator(0.05,y,question)
+  q[2] = QuantileCalculator(0.5,y,question)
+  q[3] = QuantileCalculator(0.95,y,question)
   return(q)
 }
 
-Quant = Quantiles(y)
+Quant = Quantiles(y,6)
 
 
 #Calculating Decision Maker hokjes
 
 CDMH = function(alpha){
-  temp = c()
-for (j in seq(1,5)){
-  k=paste("Data",as.character(j),sep='')
+  temp = c(0,0,0,0)
+for (question in seq(1,5)){
+  k=paste("Data",as.character(question),sep='')
   Data = get(k)
-  temp2 = ListDecisionMaker(alpha,j)
+  temp2 = ListDecisionMaker(alpha,question)
 
-    if (Data$Data[1] < QuantileCalculator(0.05,temp2)){
+    if (Data$Data[1] < QuantileCalculator(0.05,temp2,question)){
       temp=temp+c(1,0,0,0)
+
     }
-    if (Data$Data[1] < QuantileCalculator(0.5,temp2) & Data$Data[1] >= QuantileCalculator(0.05,temp2)){
+    if (Data$Data[1] < QuantileCalculator(0.5,temp2,question) & Data$Data[1] >= QuantileCalculator(0.05,temp2,question)){
       temp=temp+c(0,1,0,0)
+
     }
-    if (Data$Data[1] <= QuantileCalculator(0.95,temp2) & Data$Data[1] >= QuantileCalculator(0.5,temp2)){
+    if (Data$Data[1] <= QuantileCalculator(0.95,temp2,question) & Data$Data[1] >= QuantileCalculator(0.5,temp2,question)){
       temp=temp+c(0,0,1,0)
+
     }
-    if (Data$Data[1] > QuantileCalculator(0.95,temp2)){
+    if (Data$Data[1] > QuantileCalculator(0.95,temp2,question)){
       temp=temp+c(0,0,0,1)
+
 
     
     }  
+  print('gaat goed')
 }
+  print(temp)
   return(temp/5)
 }
 
@@ -266,26 +273,27 @@ for (j in seq(1,5)){
 DMInformationScore = function(Alpha){
   r = c()
   Information=0
-  y = PlotDecisionMaker(Alpha)
-  r=c((QuantileCalculator(0.05,y)-l1)/(u1-l1),(QuantileCalculator(0.5,y)-QuantileCalculator(0.05,y))/(u1-l1),(QuantileCalculator(0.95,y)-QuantileCalculator(0.5,y))/(u1-l1),(u1-QuantileCalculator(0.95,y))/(u1-l1))
-  
+  for(i in seq(1,6)){
+  y = ListDecisionMaker(Alpha,i)
+  r[[i]]=c((QuantileCalculator(0.05,y,i)-L[i])/(U[i]-L[i]),(QuantileCalculator(0.5,y,i)-QuantileCalculator(0.05,y,i))/(U[i]-L[i]),(QuantileCalculator(0.95,y,i)-QuantileCalculator(0.5,y,i))/(U[i]-L[i]),(U[i]-QuantileCalculator(0.95,y,i))/(U[i]-L[i]))
+  }
+  for (j in seq(1,6)){
     for (i in seq(1,4)){
-      if(r[i]!=0){
-      Information = Information + p[i]*log(p[i]/r[i])
+      if(r[[j]][i]!=0){
+      Information = Information + p[i]*log(p[i]/r[[j]][i])
       }
       
-    }  
-  x=c()
-  x=Information
-  y=r
-  return(c(x,y))
+    } 
+  }
+  return(Information/6)
 }
 
 DMI=function(alpha){
+  Hokjes = CDMH(alpha)
   Rel=0
   for (k in seq(1,4)){
-    if (CDMH(alpha)[k] !=0){
-      Rel=Rel+(CDMH(alpha)[k]*log(CDMH(alpha)[k]/p[k]))
+    if (Hokjes[k] !=0){
+      Rel=Rel+(Hokjes[k]*log(Hokjes[k]/p[k]))
     }
   }
   return(Rel)
@@ -298,8 +306,9 @@ DMCalScore = function(alpha){
   return(DMCal(DMI(alpha)))
 }
 
-CalDM = DMCalScore(0)
+CalDM = DMCalScore(0.5)
 
-InfoDM = DMInformationScore(0.4)
+InfoDM = DMInformationScore(0.3)
+
 
 
