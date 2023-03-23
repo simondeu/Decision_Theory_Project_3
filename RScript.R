@@ -100,9 +100,17 @@ for (i in seq(1,5)){
 
 
 #Need to make the cdf's of 5 experts for 5 questions
-CustomCDF = function(Expert,Question){
-#Heb half uur geprobeerd maar niks werkte :(
-#We moeten voor elke expert een soort eigen cdf maken op basis van hun quantiles, hebben we nodig voor de decision maker
+CustomCDF = function(Expert,x){
+#On basis of the quantiles, make a cdf, based on linear interpolation between the quantiles
+
+  Quantiles=c()
+  Quantiles[1]=400-0.1*(10000-400)
+  Quantiles[c(2,3,4)] = Data6[[Expert+1]]
+  Quantiles[5]=10000+0.1*(10000-400)
+  
+  
+  
+  return(Quantiles)
 }
 
 
