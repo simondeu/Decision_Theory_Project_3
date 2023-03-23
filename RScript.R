@@ -69,8 +69,11 @@ for (i in seq(1,5)){
   CalibrationScores[i]=Cal(I(i,p))
 }
 
-L=c(1-0.1*199,0.00044-0.1*(100-0.00044),300000-0.1*(60000000-300000),10-0.1*(1000-10),0.1-0.1*(1000-0.1))
-U=c(200+0.1*199,100+0.1*(100-0.00044),60000000+0.1*(60000000-300000),1000+0.1*(1000-10),1000+0.1*(1000-0.1))
+l1 = 400-0.1*(10000-400)
+u1 = 10000+0.1*(10000-400)
+
+L=c(1-0.1*199,0.00044-0.1*(100-0.00044),300000-0.1*(60000000-300000),10-0.1*(1000-10),0.1-0.1*(1000-0.1),l1)
+U=c(200+0.1*199,100+0.1*(100-0.00044),60000000+0.1*(60000000-300000),1000+0.1*(1000-10),1000+0.1*(1000-0.1),u1)
 
 
 InformationScore = function(j){
@@ -99,23 +102,204 @@ for (i in seq(1,5)){
 }
 
 
+
 #Need to make the cdf's of 5 experts for 5 questions
-CustomCDF = function(Expert,x){
+CustomCDF = function(Expert,x,question){
 #On basis of the quantiles, make a cdf, based on linear interpolation between the quantiles
-
+  
+  k=paste("Data",as.character(question),sep='')
+  Data = get(k)
+  
   Quantiles=c()
-  Quantiles[1]=400-0.1*(10000-400)
-  Quantiles[c(2,3,4)] = Data6[[Expert+1]]
-  Quantiles[5]=10000+0.1*(10000-400)
+  Quantiles[1]=L[question]
+  Quantiles[c(2,3,4)] = Data[[Expert+1]]
+  Quantiles[5]=U[question]
   
   
-  
-  return(Quantiles)
+
+  if(x<=Quantiles[1]){
+    return(0)
+  }
+  if(x<=Quantiles[2] & x>Quantiles[1]){
+    rc = (0.05)/(Quantiles[2] - Quantiles[1])
+    y = (x-Quantiles[1])*rc+0
+    return(y)
+  }
+  if(x<=Quantiles[3] & x>Quantiles[2]){
+    rc = (0.45)/(Quantiles[3] - Quantiles[2])
+    y = (x-Quantiles[2])*rc+0.05
+    return(y)
+  }
+  if(x<=Quantiles[4] & x>Quantiles[3]){
+    rc = (0.45)/(Quantiles[4] - Quantiles[3])
+    y = (x-Quantiles[3])*rc+0.5
+    return(y)
+  }
+  if(x<=Quantiles[5] & x>Quantiles[4]){
+    rc = (0.05)/(Quantiles[5] - Quantiles[4])
+    y = (x-Quantiles[4])*rc+0.95
+    return(y)
+  }
+  if(x>=Quantiles[5]){
+    return(1)
+  }
+}
+
+
+PlotExpert = function(e,color,question,reset=FALSE){
+x=seq(L[question],U[question],1)
+y=c()
+for(i in seq(length(x))){
+  y[i] = CustomCDF(e,x[i],question)
+}
+if(reset==TRUE){
+  plot(x,y,type='l', col=color)
+}
+else{
+  lines(x,y,type='l', col=color)
+}
+}
+que = 6
+PlotExpert(1,'black',que,TRUE)
+PlotExpert(2,'orange',que)
+PlotExpert(3,'red',que)
+PlotExpert(4,'blue',que)
+PlotExpert(5,'green',que)
+legend(x="bottomright",
+       legend = c("Expert1","Expert2","Expert3","Expert4","Expert5"),
+       lty = c(1,1,1,1,1),
+       col = c('black', 'orange', 'red', 'blue', 'green'),
+       lwd = 2
+)
+
+WeightAlpha = function(e, alpha){
+  if(CalibrationScores[e]>=alpha){
+    wa = CalibrationScores[e] * InformationScores[[e]]
+    return(wa)
+  }
+  return(0)
+}
+
+
+DecisionMaker = function(alpha,x,question){
+  teller = 0
+  noemer = 0
+  for(i in seq(1,5)){
+    teller = teller + WeightAlpha(i,alpha) * CustomCDF(i,x,question)
+    noemer = noemer + WeightAlpha(i,alpha)
+  }
+  return(teller/noemer)
+}
+PlotDM = function(x,y){
+  lines(x, y, type='l', col = 'purple',lwd=2)
+}
+ListDecisionMaker = function(alpha,question,plot=FALSE){
+  y = c()
+  x=seq(L[question],U[question],1)
+  for(i in seq(length(x))){
+    y[i] = DecisionMaker(alpha,x[i],question)
+  }
+  if(plot==TRUE){
+    PlotDM(x,y)
+  }
+  return(y)
+}
+
+y = ListDecisionMaker(0,6,TRUE)
+legend(x="bottomright",
+       legend = c("Expert1","Expert2","Expert3","Expert4","Expert5","DecisionMaker"),
+       lty = c(1,1,1,1,1,1),
+       col = c('black', 'orange', 'red', 'blue', 'green','purple'),
+       lwd = 2
+)
+
+
+QuantileCalculator = function(q,y){
+  i = 1
+  while(y[i]<q & i < length(y)){
+    i = i + 1
+  }
+  return(x[i])
+}
+Quantiles=function(y){
+  q = c()
+  q[1] = QuantileCalculator(0.05,y)
+  q[2] = QuantileCalculator(0.5,y)
+  q[3] = QuantileCalculator(0.95,y)
+  return(q)
+}
+
+Quant = Quantiles(y)
+
+
+#Calculating Decision Maker hokjes
+
+CDMH = function(alpha){
+  temp = c()
+for (j in seq(1,5)){
+  k=paste("Data",as.character(j),sep='')
+  Data = get(k)
+  temp2 = ListDecisionMaker(alpha,j)
+
+    if (Data$Data[1] < QuantileCalculator(0.05,temp2)){
+      temp=temp+c(1,0,0,0)
+    }
+    if (Data$Data[1] < QuantileCalculator(0.5,temp2) & Data$Data[1] >= QuantileCalculator(0.05,temp2)){
+      temp=temp+c(0,1,0,0)
+    }
+    if (Data$Data[1] <= QuantileCalculator(0.95,temp2) & Data$Data[1] >= QuantileCalculator(0.5,temp2)){
+      temp=temp+c(0,0,1,0)
+    }
+    if (Data$Data[1] > QuantileCalculator(0.95,temp2)){
+      temp=temp+c(0,0,0,1)
+
+    
+    }  
+}
+  return(temp/5)
 }
 
 
 
-DecisionMaker = function(alpha){
+#DecisionMakerScores
+
+DMInformationScore = function(Alpha){
+  r = c()
+  Information=0
+  y = PlotDecisionMaker(Alpha)
+  r=c((QuantileCalculator(0.05,y)-l1)/(u1-l1),(QuantileCalculator(0.5,y)-QuantileCalculator(0.05,y))/(u1-l1),(QuantileCalculator(0.95,y)-QuantileCalculator(0.5,y))/(u1-l1),(u1-QuantileCalculator(0.95,y))/(u1-l1))
   
+    for (i in seq(1,4)){
+      if(r[i]!=0){
+      Information = Information + p[i]*log(p[i]/r[i])
+      }
+      
+    }  
+  x=c()
+  x=Information
+  y=r
+  return(c(x,y))
 }
+
+DMI=function(alpha){
+  Rel=0
+  for (k in seq(1,4)){
+    if (CDMH(alpha)[k] !=0){
+      Rel=Rel+(CDMH(alpha)[k]*log(CDMH(alpha)[k]/p[k]))
+    }
+  }
+  return(Rel)
+}
+DMCal=function(RelInformation){
+  1-pchisq(2*5*RelInformation,df=3)
+}
+
+DMCalScore = function(alpha){
+  return(DMCal(DMI(alpha)))
+}
+
+CalDM = DMCalScore(0)
+
+InfoDM = DMInformationScore(0.4)
+
 
